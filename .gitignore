@@ -1,0 +1,5 @@
+onnx/viewer/dist
+onnx/viewer/node_modules
+.venv
+.vscode
+__pycache__
