@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # input
-# ball x,y,z
-# team mate x,y,z
-# opponent x,y,z
-# opponent x,y,z
+# ball x,y
+# team mate x,y
+# opponent x,y
+# opponent x,y
 
 # output
 # heatmap
@@ -14,14 +14,14 @@ import torch.nn.functional as F
 # 100 x 80 elements to indicate position
 
 LAYERS_ONES = [
-  nn.Linear(6,128), nn.ReLU(),
+  nn.Linear(8,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
   nn.Linear(128,8000)
 ]
 
 LAYERS_TWOS = [
-  nn.Linear(12,128), nn.ReLU(),
+  nn.Linear(8,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
   nn.Linear(128,8000)
