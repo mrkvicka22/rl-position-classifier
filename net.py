@@ -17,14 +17,14 @@ LAYERS_ONES = [
   nn.Linear(8,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
-  nn.Linear(128,8000)
+  nn.Linear(128,80)
 ]
 
 LAYERS_TWOS = [
   nn.Linear(8,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
   nn.Linear(128,128), nn.ReLU(),
-  nn.Linear(128,8000)
+  nn.Linear(128,80)
 ]
 
 LAYERS_THREES = [

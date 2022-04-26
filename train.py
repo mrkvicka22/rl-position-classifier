@@ -27,15 +27,15 @@ _invert_2v2_batch = [-1, -1, 1] * 5
 _normal_2v2_batch = [4096, 5120 + 900, 2044] * 5 # 8192, 10240 (compensate for goal depth)
 
 def world_pos_to_map_pos(train_labels):
-  return (train_labels * [40, 50] + [40, 50]).astype(np.int32)
+  return (train_labels * [4, 5] + [4, 5]).astype(np.int32)
 
 def labels_to_map(labels):
   for x, y in world_pos_to_map_pos(labels):
-    label = np.full((80, 100), 0.5, dtype=np.float32)
+    label = np.full((8, 10), 0.5, dtype=np.float32)
 
     # clamp to map size
-    x = max(0, min(79, x))
-    y = max(0, min(99, y))
+    x = max(0, min(7, x))
+    y = max(0, min(9, y))
     label[x, y] = 0
     yield label
 
@@ -59,7 +59,7 @@ def train():
   steps_taken = 0
 
   model_path_base = MODEL_PATH.replace('.pt', '')
-  load_steps = None # 30_000_000
+  load_steps = 23_000_000
   model_load_path = f'{model_path_base}_{load_steps}.pt'
   if os.path.exists(model_load_path):
     model = load(model_load_path)
@@ -75,14 +75,14 @@ def train():
   loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
 
   # Batch size increases after the first 1 million steps
-  batch_size = 50_000
+  batch_size = 1_000_000
 
   # Train
   while True:
 
     train_features, train_label_pos = get_state_batch(batch_size)
     train_labels = np.array(list(labels_to_map(train_label_pos.astype(np.float32))))
-    labels = torch.tensor(train_labels).view((batch_size, 8000))
+    labels = torch.tensor(train_labels).view((batch_size, 80))
     inputs = torch.tensor(train_features.astype(np.float32))
     train_step(model, _optimizer, loss_fn, inputs, labels)
 
@@ -92,14 +92,14 @@ def train():
       print(f"Steps completed: {steps_taken}")
 
     # Validate and save checkpoint every 1 million steps
-    if steps_taken % 1_000_000 == 0:
+    if steps_taken % 10_000_000 == 0:
       model.eval()
       with torch.no_grad():
         # Validate
         val_features, val_label_pos = get_state_batch(100_000)
         val_labels = np.array(list(labels_to_map(val_label_pos.astype(np.float32))))
         val_inputs = torch.tensor(val_features.astype(np.float32))
-        val_labels = torch.tensor(val_labels).view((len(val_features), 8000))
+        val_labels = torch.tensor(val_labels).view((len(val_features), 80))
         val_loss = loss_fn(model(val_inputs), val_labels)
         print(f'Validation loss: {val_loss}')
         # Step scheduler
