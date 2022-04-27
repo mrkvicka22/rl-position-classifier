@@ -123,7 +123,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       val_labels = torch.tensor(val_labels.astype(np.float32)).view((batch_size, 1)) # BCELoss requires strict size for labels
       val_loss = loss_fn(model(val_inputs), val_labels)
       print(f'Validation loss: {val_loss}')
-      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=True, augment_flip=True, augment_shuffle_blue=True, augment_shuffle_orange=True)
+      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False)
       train_inputs = torch.tensor(train_features.astype(np.float32))
       train_labels = torch.tensor(train_labels.astype(np.float32)).view((batch_size, 1))
       train_loss = loss_fn(model(train_inputs), train_labels)
