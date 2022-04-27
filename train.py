@@ -101,7 +101,6 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
   init_labels = torch.tensor(init_labels.astype(np.float32)).view((batch_size, 1))
   init_loss = loss_fn(model(init_inputs), init_labels)
   print(f'Init loss: {init_loss}')
-  wandb.log({'train_loss': init_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': 0, 'steps': 0})
 
   # Iterate for n epochs
   for epoch in range(epochs):
