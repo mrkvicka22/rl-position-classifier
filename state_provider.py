@@ -27,8 +27,8 @@ def get_replay_batch(gamemode, suffix, batch_size, verbose=False):
   cur.execute(expression)
   results = cur.fetchall()
   if 0 < len(results) < batch_size:
-    print('WARNING: Batch size {} is larger than the number of rows ({}) in the table {}, making multiple requests.'.format(batch_size, len(results), gamemode))
-    results += get_replay_batch(gamemode, batch_size - len(results))
+    print('WARNING: Batch size {} is larger than the number of rows ({}) in the table {}_{}, making multiple requests.'.format(batch_size, len(results), gamemode, suffix))
+    results += get_replay_batch(gamemode, suffix, batch_size - len(results))
   return results
 
 def get_random_play_sequence(gamemode, suffix, batch_size, verbose=False):
