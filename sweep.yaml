@@ -10,11 +10,11 @@ metric:
 parameters:
   disable_rng_mask:
     values:
-      - "false"
+      - no
     distribution: categorical
   use_2d_map:
     values:
-      - "false"
+      - no
     distribution: categorical
   optimiser:
     values:
@@ -23,7 +23,7 @@ parameters:
     distribution: categorical
   aug_flip:
     values:
-      - "false"
+      - no
     distribution: categorical
   dataset:
     values:
