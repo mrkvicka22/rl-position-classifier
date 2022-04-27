@@ -63,17 +63,17 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
 
   # Apply augmentations, flip teams
   if augment_flip:
-    x_inversion_mask, y_inversion_mask = create_random_mask(batch_size), create_random_mask(batch_size)
+    x_inversion_mask, y_inversion = create_random_mask(batch_size), random.random() < 0.5
     # flip on x axis
     batch[x_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=True)
-    # flip on y axis
-    batch[y_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=False)
-    # swap teams if we flipped on y axis
-    team_members = dataset.player_count // 2
-    blue_team = slice(ndims, ndims * (team_members + 1))
-    orange_team = slice(ndims * (team_members + 1), ndims * (team_members * 2 + 1))
-    batch[y_inversion_mask, np.r_[blue_team, orange_team]] = batch[y_inversion_mask, np.r_[orange_team, blue_team]]
-    # IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (250,) (12,)
+    if y_inversion:
+      # flip on y axis
+      batch[:] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=False)
+      # swap teams if we flipped on y axis
+      team_members = dataset.player_count // 2
+      blue_team = slice(ndims, ndims * (team_members + 1))
+      orange_team = slice(ndims * (team_members + 1), ndims * (team_members * 2 + 1))
+      batch[:, np.r_[blue_team, orange_team]] = batch[:, np.r_[orange_team, blue_team]]
 
   # Produce labels which default to 1 (correct prediction) and get masked to 0 (incorrect prediction)
   labels = np.ones(batch_size)
