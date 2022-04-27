@@ -4,6 +4,7 @@ from collections import namedtuple
 
 import numpy as np
 import torch
+import wandb
 from torch import load, save
 from torch.nn import BCEWithLogitsLoss, MSELoss
 from torch.optim import SGD, Adam
@@ -100,6 +101,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
   init_labels = torch.tensor(init_labels.astype(np.float32)).view((batch_size, 1))
   init_loss = loss_fn(model(init_inputs), init_labels)
   print(f'Init loss: {init_loss}')
+  wandb.log({'train_loss': init_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': 0, 'steps': 0})
 
   # Iterate for n epochs
   for epoch in range(epochs):
@@ -136,6 +138,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       # model_path = f'{model_path_base}_{steps_taken}.pt'
       # save(model, model_path)
       # print(f'Model saved to {model_path}')
+      wandb.log({'val_loss': val_loss, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
       model.train()
 
 if __name__ == '__main__':
@@ -201,6 +204,10 @@ if __name__ == '__main__':
 
     # Create model
     model = create_model(dataset.player_count, 2 if use_2d_map else 3)
+
+    # Setup wandb
+    wandb.init(project="rl-position-classifier", entity='nevercast', config=args)
+    wandb.watch(model)
 
     # Validate optimiser is adam or sgd, and create optimiser
     if optimiser == 'adam':
