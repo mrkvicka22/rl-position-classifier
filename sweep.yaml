@@ -32,8 +32,8 @@ parameters:
       - ssl_3v3
     distribution: categorical
   epochs:
-    max: 200
-    min: 5
+    max: 10
+    min: 1
     distribution: int_uniform
   seed:
     values:
