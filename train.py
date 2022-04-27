@@ -173,8 +173,11 @@ if __name__ == '__main__':
     # Add argument to use a 2d map, use the variable "use_2d_map" in the code
     parser.add_argument('--2d', action='store_true', help='Use a 2d map', dest='use_2d_map')
 
-    # Parse all arguments into variables
+    # Parse all arguments, ship to wandb and collect the returned config
     args = parser.parse_args()
+    wandb.init(project="rl-position-classifier", entity='nevercast', config=args)
+    args = wandb.config
+
     dataset = args.dataset
     epochs = args.epochs
     batch_size = args.bs
@@ -206,11 +209,8 @@ if __name__ == '__main__':
       valid_dataset_table_names = [dataset.table for dataset in available_datasets]
       raise ValueError(f"Dataset {dataset} not found, available datasets: {valid_dataset_table_names}")
 
-    # Create model
+    # Create model and attach wandb
     model = create_model(dataset.player_count, 2 if use_2d_map else 3)
-
-    # Setup wandb
-    wandb.init(project="rl-position-classifier", entity='nevercast', config=args)
     wandb.watch(model)
 
     # Validate optimiser is adam or sgd, and create optimiser
