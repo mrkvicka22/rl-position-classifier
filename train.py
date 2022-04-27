@@ -119,20 +119,21 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
 
     model.eval()
     with torch.no_grad():
+      validation_batch_size = 50_000
       # Validate
-      val_features, val_labels = get_state_batch(dataset, batch_size, 'validation', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
+      val_features, val_labels = get_state_batch(dataset, validation_batch_size, 'validation', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
       val_inputs = torch.tensor(val_features.astype(np.float32))
-      val_labels = torch.tensor(val_labels.astype(np.float32)).view((batch_size, 1)) # BCELoss requires strict size for labels
+      val_labels = torch.tensor(val_labels.astype(np.float32)).view((validation_batch_size, 1)) # BCELoss requires strict size for labels
       val_loss = loss_fn(model(val_inputs), val_labels)
       print(f'Validation loss: {val_loss}')
-      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
+      train_features, train_labels = get_state_batch(dataset, validation_batch_size, 'train', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
       train_inputs = torch.tensor(train_features.astype(np.float32))
-      train_labels = torch.tensor(train_labels.astype(np.float32)).view((batch_size, 1))
+      train_labels = torch.tensor(train_labels.astype(np.float32)).view((validation_batch_size, 1))
       train_loss = loss_fn(model(train_inputs), train_labels)
       print(f'Training loss: {train_loss}')
       # Step scheduler
       # scheduler.step()
-      print(f'Learning rate: {optimiser.param_groups[0]["lr"]}')
+      # print(f'Learning rate: {optimiser.param_groups[0]["lr"]}')
       # Save model
       save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_latest.pt"))
       save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_chk_{total_steps}.pt"))
