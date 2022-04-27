@@ -14,7 +14,7 @@ parameters:
     distribution: categorical
   use_2d_map:
     values:
-      - "true"
+      - "false"
     distribution: categorical
   optimiser:
     values:
@@ -23,7 +23,7 @@ parameters:
     distribution: categorical
   aug_flip:
     values:
-      - "true"
+      - "false"
     distribution: categorical
   dataset:
     values:
@@ -32,7 +32,7 @@ parameters:
       - ssl_3v3
     distribution: categorical
   epochs:
-    max: 50
+    max: 200
     min: 5
     distribution: int_uniform
   seed:
@@ -48,7 +48,7 @@ parameters:
       - mse
     distribution: categorical
   lr:
-    max: 0.0002
+    max: 0.004
     min: 0.00005
     distribution: uniform
   bs:
