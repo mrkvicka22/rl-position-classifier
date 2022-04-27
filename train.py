@@ -1,3 +1,4 @@
+import os
 import random
 from argparse import ArgumentParser
 from collections import namedtuple
@@ -133,9 +134,8 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       # scheduler.step()
       print(f'Learning rate: {optimiser.param_groups[0]["lr"]}')
       # Save model
-      model_path = f'model_{total_steps}.pt'
-      save(model, model_path)
-      print(f'Model saved to {model_path}')
+      save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_latest.pt"))
+      save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_chk_{total_steps}.pt"))
       wandb.log({'val_loss': val_loss, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
       model.train()
 
@@ -202,6 +202,7 @@ if __name__ == '__main__':
     # Create model and attach wandb
     model = create_model(dataset.player_count, 2 if use_2d_map else 3)
     wandb.watch(model)
+    wandb.save(os.path.join(wandb.run.dir, f"model_{dataset.table}_chk*"))
 
     # Validate optimiser is adam or sgd, and create optimiser
     if optimiser == 'adam':
