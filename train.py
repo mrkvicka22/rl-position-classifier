@@ -1,14 +1,15 @@
+import random
 from argparse import ArgumentParser
 from collections import namedtuple
-import random
+
+import numpy as np
 import torch
-from torch import save, load
-from torch.optim import Adam, SGD
+from torch import load, save
 from torch.nn import BCEWithLogitsLoss, MSELoss
+from torch.optim import SGD, Adam
+
 from net import create_model
 from settings import TWOS_MODEL_PATH
-import numpy as np
-
 from state_provider import get_replay_batch, get_total_data_count
 
 DatasetClass = namedtuple('DatasetClass', ['table', 'player_count'])
