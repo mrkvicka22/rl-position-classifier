@@ -34,8 +34,8 @@ def train_step(net, optimiser, loss_fn, inputs, targets):
   optimiser.step()
   return loss.item()
 
-def inversion(player_count, use_2d_map=False):
-  inversion_map = random.choice([[-1, -1], [-1, 1], [1, -1]])
+def inversion(player_count, use_2d_map=False, x_inversion=True):
+  inversion_map = [-1, 1] if x_inversion else [1, -1]
   # players + ball
   if use_2d_map:
     return np.array(inversion_map * (player_count + 1))
@@ -63,8 +63,9 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
 
   # Apply augmentations, flip teams
   if augment_flip:
-    inversion_mask = create_random_mask(batch_size)
-    batch[inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map)
+    x_inversion_mask, y_inversion_mask = create_random_mask(batch_size)
+    batch[x_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=True)
+    batch[y_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=False)
   # Randomly shuffle the blue team
   if augment_shuffle_blue:
     shuffle_mask = create_random_mask(batch_size)
