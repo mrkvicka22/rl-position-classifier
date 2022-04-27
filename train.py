@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from collections import namedtuple
-from random import Random, random
+import random
 import torch
 from torch import save, load
 from torch.optim import Adam, SGD
@@ -57,7 +57,7 @@ RANDOM_POSITION_OFF = RANDOM_POSITION_MUL * [0, 0, 1] + [0, 0, 17] # cars drive 
 
 def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False):
   batch = np.array(get_replay_batch(dataset.table, suffix, batch_size))
-  if augment_flip and random() < 0.5: # flip teams
+  if augment_flip and random.random() < 0.5: # flip teams
     batch *= inversion(dataset.player_count)
 
   # ball = batch[:, 0:3]
@@ -67,10 +67,10 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
   second_team = batch[:, 3 + dataset.player_count * 3:]
 
   # Randomly shuffle the first team
-  if augment_shuffle_blue and random() < 0.5:
+  if augment_shuffle_blue and random.random() < 0.5:
     np.random.shuffle(first_team)
   # Randomly shuffle the second team
-  if augment_shuffle_orange and random() < 0.5:
+  if augment_shuffle_orange and random.random() < 0.5:
     np.random.shuffle(second_team)
 
   # Produce labels which default to 1 (correct prediction) and get masked to 0 (incorrect prediction)
@@ -93,7 +93,7 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
   # input, label
   return batch / normalization(dataset.player_count), labels
 
-def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser, loss_fn):
+def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser, loss_fn, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False):
 
   epoch_length = get_total_data_count(dataset.table, 'train')
   print('Epoch length: ', epoch_length)
@@ -104,7 +104,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
     # Count the total steps in the epoch
     epoch_steps = 0
     while epoch_steps < epoch_length:
-      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=True, augment_flip=True, augment_shuffle_blue=True, augment_shuffle_orange=True)
+      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=augment_flip, augment_shuffle_blue=augment_shuffle_blue, augment_shuffle_orange=augment_shuffle_orange)
       inputs = torch.tensor(train_features.astype(np.float32))
       labels = torch.tensor(train_labels.astype(np.float32)).view((batch_size, 1)) # BCELoss requires strict size for labels
       train_step(model, optimiser, loss_fn, inputs, labels)
@@ -156,10 +156,13 @@ if __name__ == '__main__':
     parser.add_argument('--loss_fn', type=str, default='bce')
     # Add argument to specify rng seed
     parser.add_argument('--seed', type=int, default=1337)
-    # Add argments for augmentation
+    # Add arguments for augmentation
     parser.add_argument('--augment_flip', action='store_true')
     parser.add_argument('--augment_shuffle_blue', action='store_true')
     parser.add_argument('--augment_shuffle_orange', action='store_true')
+    # Add argument to enable negative case (random position) generation
+    # Provide help for this argument.
+    parser.add_argument('--random_position', action='store_true', help='Generate random positions for the prediction player with a negative mask')
 
     # Parse all arguments into variables
     args = parser.parse_args()
@@ -173,6 +176,7 @@ if __name__ == '__main__':
     augment_flip = args.augment_flip
     augment_shuffle_blue = args.augment_shuffle_blue
     augment_shuffle_orange = args.augment_shuffle_orange
+    random_position = args.random_position
 
     # Apply seed to numpy, torch and python random
     np.random.seed(seed)
@@ -227,9 +231,10 @@ if __name__ == '__main__':
     print(f'Loss function: {loss_fn}')
     print(f'Seed: {seed}')
     print(f'Augmentations:')
-    print(f'Flip teams: {augment_flip}')
-    print(f'Shuffle Blue: {augment_shuffle_blue}')
-    print(f'Shuffle Orange: {augment_shuffle_orange}')
+    print(f'  Flip teams: {augment_flip}')
+    print(f'  Shuffle Blue: {augment_shuffle_blue}')
+    print(f'  Shuffle Orange: {augment_shuffle_orange}')
+    print(f'  Random position mask: {random_position}')
     print('\n')
 
     train(
@@ -239,5 +244,9 @@ if __name__ == '__main__':
       , batch_size
       , optimiser
       , loss_fn
+      , augment_flip
+      , augment_shuffle_blue
+      , augment_shuffle_orange
+      , random_position
     )
   __main__()
