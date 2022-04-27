@@ -33,26 +33,30 @@ def train_step(net, optimiser, loss_fn, inputs, targets):
   optimiser.step()
   return loss.item()
 
-def inversion(player_count):
-  return np.array([-1, -1, 1] * (player_count + 1)) # players + ball
+def inversion(player_count, use_2d_map=False):
+  # players + ball
+  if use_2d_map:
+    return np.array([-1, -1] * (player_count + 1))
+  return np.array([-1, -1, 1] * (player_count + 1))
 
-def normalization(player_count):
+def normalization(player_count, use_2d_map=False):
+  if use_2d_map:
+    return np.array([4096, 6000] * (player_count + 1))
   return np.array([4096, 6000, 2000] * (player_count + 1)) # players + ball
 
-RANDOM_POSITION_MUL = normalization(0) // [1, 1, 2]
-RANDOM_POSITION_OFF = RANDOM_POSITION_MUL * [0, 0, 1] + [0, 0, 17] # cars drive at height 17
+def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=False):
+  batch = np.array(get_replay_batch(dataset.table, suffix, batch_size, use_2d_map=use_2d_map))
 
-def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False):
-  batch = np.array(get_replay_batch(dataset.table, suffix, batch_size))
-  if augment_flip and random.random() < 0.5: # flip teams
-    batch *= inversion(dataset.player_count)
-
-  # ball = batch[:, 0:3]
+  # The amount of dimensions on each entity, 2 is (x, y), 3 is (x, y, z)
+  ndims = 2 if use_2d_map else 3
   # Get first team (blue), player_count includes both teams. Each player is 3 floats (x, y, z)
-  first_team = batch[:, 3:3 + dataset.player_count * 3]
+  first_team = batch[:, ndims:ndims + dataset.player_count * ndims]
   # Get second team (orange)
-  second_team = batch[:, 3 + dataset.player_count * 3:]
+  second_team = batch[:, ndims + dataset.player_count * ndims:]
 
+  # Apply augmentations, flip teams
+  if augment_flip and random.random() < 0.5:
+    batch *= inversion(dataset.player_count, use_2d_map=use_2d_map)
   # Randomly shuffle the first team
   if augment_shuffle_blue and random.random() < 0.5:
     np.random.shuffle(first_team)
@@ -63,6 +67,12 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
   # Produce labels which default to 1 (correct prediction) and get masked to 0 (incorrect prediction)
   labels = np.ones(batch_size)
   if random_position:
+    rng_pos_mul = normalization(0, use_2d_map=use_2d_map)
+    if not use_2d_map:
+      rng_pos_mul //= [1, 1, 2]
+      rng_pos_off = rng_pos_mul * [0, 0, 1] + [0, 0, 17] # cars drive at height 17
+    else:
+      rng_pos_off = [0, 0]
     # Create mask, which is the same size as the batch, and will mutable some of the batch and produce labels
     mask = np.zeros(batch_size, dtype=bool)
     # We will mask half the batch with random prediction positions
@@ -73,19 +83,19 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
     # np.random.random produces floats from [0, 1), we transform this to [-1, 1) and then multiply by the normalization
     # such that the position is in the range of the map. We then add the offset to the height to make sure the cars
     # are in the field. (above ground)
-    batch[mask, 3:6] = ((1 - 2 * np.random.random(size=(batch_size // 2, 3))) * RANDOM_POSITION_MUL + RANDOM_POSITION_OFF)  # (x, y, z) range.
+    batch[mask, ndims:2*ndims] = ((1 - 2 * np.random.random(size=(batch_size // 2, ndims))) * rng_pos_mul + rng_pos_off)  # (x, y, z) range.
     # Mask the label with 0 which is incorrect prediction
     labels[mask] = 0
 
   # input, label
-  return batch / normalization(dataset.player_count), labels
+  return batch / normalization(dataset.player_count, use_2d_map=use_2d_map), labels
 
-def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser, loss_fn, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False):
+def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser, loss_fn, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=False):
 
   epoch_length = get_total_data_count(dataset.table, 'train')
   print('Epoch length: ', epoch_length)
   total_steps = 0
-  init_features, init_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False)
+  init_features, init_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=use_2d_map)
   init_inputs = torch.tensor(init_features.astype(np.float32))
   init_labels = torch.tensor(init_labels.astype(np.float32)).view((batch_size, 1))
   init_loss = loss_fn(model(init_inputs), init_labels)
@@ -96,7 +106,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
     # Count the total steps in the epoch
     epoch_steps = 0
     while epoch_steps < epoch_length:
-      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=augment_flip, augment_shuffle_blue=augment_shuffle_blue, augment_shuffle_orange=augment_shuffle_orange)
+      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=augment_flip, augment_shuffle_blue=augment_shuffle_blue, augment_shuffle_orange=augment_shuffle_orange, use_2d_map=use_2d_map)
       inputs = torch.tensor(train_features.astype(np.float32))
       labels = torch.tensor(train_labels.astype(np.float32)).view((batch_size, 1)) # BCELoss requires strict size for labels
       train_step(model, optimiser, loss_fn, inputs, labels)
@@ -109,12 +119,12 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
     model.eval()
     with torch.no_grad():
       # Validate
-      val_features, val_labels = get_state_batch(dataset, batch_size, 'validation', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False)
+      val_features, val_labels = get_state_batch(dataset, batch_size, 'validation', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=use_2d_map)
       val_inputs = torch.tensor(val_features.astype(np.float32))
       val_labels = torch.tensor(val_labels.astype(np.float32)).view((batch_size, 1)) # BCELoss requires strict size for labels
       val_loss = loss_fn(model(val_inputs), val_labels)
       print(f'Validation loss: {val_loss}')
-      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False)
+      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=use_2d_map)
       train_inputs = torch.tensor(train_features.astype(np.float32))
       train_labels = torch.tensor(train_labels.astype(np.float32)).view((batch_size, 1))
       train_loss = loss_fn(model(train_inputs), train_labels)
@@ -152,8 +162,9 @@ if __name__ == '__main__':
     parser.add_argument('--augment_shuffle_blue', action='store_true')
     parser.add_argument('--augment_shuffle_orange', action='store_true')
     # Add argument to enable negative case (random position) generation
-    # Provide help for this argument.
     parser.add_argument('--disable-rng-mask', action='store_true', help='Disables random position generation. Required for training with a negative mask, should prevent false positives when enabled.')
+    # Add argument to use a 2d map
+    parser.add_argument('--use-2d-map', action='store_true')
 
     # Parse all arguments into variables
     args = parser.parse_args()
@@ -168,6 +179,7 @@ if __name__ == '__main__':
     augment_shuffle_blue = args.augment_shuffle_blue
     augment_shuffle_orange = args.augment_shuffle_orange
     random_position = not args.disable_rng_mask
+    use_2d_map = args.use_2d_map
 
     # Apply seed to numpy, torch and python random
     np.random.seed(seed)
@@ -188,7 +200,7 @@ if __name__ == '__main__':
       raise ValueError(f"Dataset {dataset} not found, available datasets: {valid_dataset_table_names}")
 
     # Create model
-    model = create_model(dataset.player_count)
+    model = create_model(dataset.player_count, 2 if use_2d_map else 3)
 
     # Validate optimiser is adam or sgd, and create optimiser
     if optimiser == 'adam':
@@ -225,6 +237,7 @@ if __name__ == '__main__':
     print(f'  Shuffle Blue: {augment_shuffle_blue}')
     print(f'  Shuffle Orange: {augment_shuffle_orange}')
     print(f'  Random position mask: {random_position}')
+    print(f'Use 2D map: {use_2d_map}')
     print('\n')
 
     train(
@@ -238,5 +251,6 @@ if __name__ == '__main__':
       , augment_shuffle_blue
       , augment_shuffle_orange
       , random_position
+      , use_2d_map
     )
   __main__()
