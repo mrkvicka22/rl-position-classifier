@@ -35,10 +35,12 @@ def train_step(net, optimiser, loss_fn, inputs, targets):
   return loss.item()
 
 def inversion(player_count, use_2d_map=False):
+  inversion_map = random.choice([[-1, -1], [-1, 1], [1, -1]])
   # players + ball
   if use_2d_map:
-    return np.array([-1, -1] * (player_count + 1))
-  return np.array([-1, -1, 1] * (player_count + 1))
+    return np.array(inversion_map * (player_count + 1))
+  inversion_map += [1]
+  return np.array(inversion_map * (player_count + 1))
 
 def normalization(player_count, use_2d_map=False):
   if use_2d_map:
