@@ -174,7 +174,6 @@ if __name__ == '__main__':
     torch.manual_seed(seed)
     random.seed(seed)
 
-
     # Validate that dataset is a valid dataset class table name
     dataset = dataset.lower()
     # Map dataset (dataset.table) to dataset class by iterating available_datasets
