@@ -45,25 +45,34 @@ def normalization(player_count, use_2d_map=False):
     return np.array([4096, 6000] * (player_count + 1))
   return np.array([4096, 6000, 2000] * (player_count + 1)) # players + ball
 
+def create_random_mask(batch_size):
+  # Create mask, which is the same size as the batch, that can be used to mutate the batch data
+  mask = np.zeros(batch_size, dtype=bool)
+  # We will mask half the batch so that 50% of the batch is mutated
+  mask[:batch_size // 2] = True
+  np.random.shuffle(mask)
+  return mask
+
 def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=False):
   batch = np.array(get_replay_batch(dataset.table, suffix, batch_size, use_2d_map=use_2d_map))
 
   # The amount of dimensions on each entity, 2 is (x, y), 3 is (x, y, z)
   ndims = 2 if use_2d_map else 3
-  # Get first team (blue), player_count includes both teams. Each player is 3 floats (x, y, z)
-  first_team = batch[:, ndims:ndims + dataset.player_count * ndims]
-  # Get second team (orange)
-  second_team = batch[:, ndims + dataset.player_count * ndims:]
 
   # Apply augmentations, flip teams
-  if augment_flip and random.random() < 0.5:
-    batch *= inversion(dataset.player_count, use_2d_map=use_2d_map)
-  # Randomly shuffle the first team
-  if augment_shuffle_blue and random.random() < 0.5:
-    np.random.shuffle(first_team)
-  # Randomly shuffle the second team
-  if augment_shuffle_orange and random.random() < 0.5:
-    np.random.shuffle(second_team)
+  if augment_flip:
+    inversion_mask = create_random_mask(batch_size)
+    batch[inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map)
+  # Randomly shuffle the blue team
+  if augment_shuffle_blue:
+    shuffle_mask = create_random_mask(batch_size)
+    blue_team = batch[shuffle_mask, ndims:ndims + dataset.player_count * ndims]
+    np.random.shuffle(blue_team)
+  # Randomly shuffle the orange team
+  if augment_shuffle_orange:
+    shuffle_mask = create_random_mask(batch_size)
+    orange_team = batch[shuffle_mask, ndims + dataset.player_count * ndims:]
+    np.random.shuffle(orange_team)
 
   # Produce labels which default to 1 (correct prediction) and get masked to 0 (incorrect prediction)
   labels = np.ones(batch_size)
@@ -74,12 +83,8 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
       rng_pos_off = rng_pos_mul * [0, 0, 1] + [0, 0, 17] # cars drive at height 17
     else:
       rng_pos_off = [0, 0]
-    # Create mask, which is the same size as the batch, and will mutable some of the batch and produce labels
-    mask = np.zeros(batch_size, dtype=bool)
-    # We will mask half the batch with random prediction positions
-    mask[:batch_size // 2] = True
-    # Shuffle the mask so that random parts of the batch are masked
-    np.random.shuffle(mask)
+
+    mask = create_random_mask(batch_size)
     # Mask the prediction player (first blue player) with random a position
     # np.random.random produces floats from [0, 1), we transform this to [-1, 1) and then multiply by the normalization
     # such that the position is in the range of the map. We then add the offset to the height to make sure the cars
