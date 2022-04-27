@@ -2,4 +2,3 @@ torch
 matplotlib
 numpy
 fastparquet
-pygame
