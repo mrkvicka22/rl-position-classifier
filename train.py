@@ -63,7 +63,7 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
 
   # Apply augmentations, flip teams
   if augment_flip:
-    x_inversion_mask, y_inversion_mask = create_random_mask(batch_size), create_random_mask(batch_size)
+    x_inversion_mask = create_random_mask(batch_size)
     # flip on x axis
     batch[x_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=True)
     # TODO: This bullshit
