@@ -162,7 +162,7 @@ if __name__ == '__main__':
     parser.add_argument('--augment_shuffle_orange', action='store_true')
     # Add argument to enable negative case (random position) generation
     # Provide help for this argument.
-    parser.add_argument('--random_position', action='store_true', help='Generate random positions for the prediction player with a negative mask')
+    parser.add_argument('--disable-rng-mask', action='store_true', help='Disables random position generation. Required for training with a negative mask, should prevent false positives when enabled.')
 
     # Parse all arguments into variables
     args = parser.parse_args()
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     augment_flip = args.augment_flip
     augment_shuffle_blue = args.augment_shuffle_blue
     augment_shuffle_orange = args.augment_shuffle_orange
-    random_position = args.random_position
+    random_position = not args.disable_rng_mask
 
     # Apply seed to numpy, torch and python random
     np.random.seed(seed)
