@@ -63,17 +63,9 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
 
   # Apply augmentations, flip teams
   if augment_flip:
-    x_inversion_mask, y_inversion = create_random_mask(batch_size), random.random() < 0.5
+    x_inversion_mask = create_random_mask(batch_size)
     # flip on x axis
     batch[x_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=True)
-    if y_inversion:
-      # flip on y axis
-      batch[:] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=False)
-      # swap teams if we flipped on y axis
-      team_members = dataset.player_count // 2
-      blue_team = slice(ndims, ndims * (team_members + 1))
-      orange_team = slice(ndims * (team_members + 1), ndims * (team_members * 2 + 1))
-      batch[:, np.r_[blue_team, orange_team]] = batch[:, np.r_[orange_team, blue_team]]
 
   # Produce labels which default to 1 (correct prediction) and get masked to 0 (incorrect prediction)
   labels = np.ones(batch_size)
@@ -141,9 +133,9 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       # scheduler.step()
       print(f'Learning rate: {optimiser.param_groups[0]["lr"]}')
       # Save model
-      # model_path = f'{model_path_base}_{steps_taken}.pt'
-      # save(model, model_path)
-      # print(f'Model saved to {model_path}')
+      model_path = f'model_{total_steps}.pt'
+      save(model, model_path)
+      print(f'Model saved to {model_path}')
       wandb.log({'val_loss': val_loss, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
       model.train()
 
@@ -248,14 +240,14 @@ if __name__ == '__main__':
     print('\n')
 
     train(
-      model
-      , dataset
-      , epochs # (total cycles through the dataset)
-      , batch_size
-      , optimiser
-      , loss_fn
-      , augment_flip
-      , random_position
-      , use_2d_map
+      model=model
+      , dataset=dataset
+      , epochs=epochs # (total cycles through the dataset)
+      , batch_size=batch_size
+      , optimiser=optimiser
+      , loss_fn=loss_fn
+      , random_position=random_position
+      , augment_flip=augment_flip
+      , use_2d_map=use_2d_map
     )
   __main__()
