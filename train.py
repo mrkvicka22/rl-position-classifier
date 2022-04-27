@@ -66,10 +66,11 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
     x_inversion_mask, y_inversion_mask = create_random_mask(batch_size), create_random_mask(batch_size)
     # flip on x axis
     batch[x_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=True)
-    # flip on y axis
-    batch[y_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=False)
-    # swap teams if we flipped on y axis
-    batch[y_inversion_mask, np.r_[ndims:ndims + dataset.player_count * ndims, ndims + dataset.player_count * ndims:]] = batch[:, np.r_[ndims + dataset.player_count * ndims:, ndims:ndims + dataset.player_count * ndims]]
+    # TODO: This bullshit
+    # # flip on y axis
+    # batch[y_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=False)
+    # # swap teams if we flipped on y axis
+    # batch[y_inversion_mask, np.r_[ndims:ndims + dataset.player_count // 2 * ndims, ndims + dataset.player_count // 2 * ndims:]] = batch[y_inversion_mask, np.r_[ndims + dataset.player_count // 2 * ndims:, ndims:ndims + dataset.player_count // 2* ndims]]
 
   # Produce labels which default to 1 (correct prediction) and get masked to 0 (incorrect prediction)
   labels = np.ones(batch_size)
