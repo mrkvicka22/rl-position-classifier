@@ -1,0 +1,63 @@
+program: train.py
+method: bayes
+metric:
+  goal: minimize
+  name: val_loss
+parameters:
+  disable_rng_mask:
+    values:
+      - "true"
+      - "false"
+    distribution: categorical
+  use_2d_map:
+    values:
+      - "true"
+      - "false"
+    distribution: categorical
+  aug_orange:
+    values:
+      - "true"
+      - "false"
+    distribution: categorical
+  optimiser:
+    values:
+      - adam
+      - sgd
+    distribution: categorical
+  aug_flip:
+    values:
+      - "true"
+      - "false"
+    distribution: categorical
+  aug_blue:
+    values:
+      - "true"
+      - "false"
+    distribution: categorical
+  dataset:
+    values:
+      - ssl_2v2
+      - ssl_1v1
+      - ssl_3v3
+    distribution: categorical
+  epochs:
+    max: 100
+    min: 5
+    distribution: int_uniform
+  seed:
+    max: 2674
+    min: 669
+    distribution: int_uniform
+  loss:
+    values:
+      - bce
+      - mse
+    distribution: categorical
+  lr:
+    max: 0.0002
+    min: 0.00005
+    distribution: uniform
+  bs:
+    max: 50000
+    min: 250
+    distribution: int_uniform
