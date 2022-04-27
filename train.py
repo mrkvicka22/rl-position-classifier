@@ -16,7 +16,6 @@ DATASET_SSL_1v1 = DatasetClass(table='ssl_1v1', player_count=2)
 DATASET_SSL_2v2 = DatasetClass(table='ssl_2v2', player_count=4)
 DATASET_SSL_3v3 = DatasetClass(table='ssl_3v3', player_count=6)
 
-
 # TODO: Validate x and y coordinate space
 # X is left and right
 # Y is up and down
@@ -38,19 +37,6 @@ def inversion(player_count):
 
 def normalization(player_count):
   return np.array([4096, 6000, 2000] * (player_count + 1)) # players + ball
-
-def world_pos_to_map_pos(train_labels):
-  return (train_labels * [4, 5] + [4, 5]).astype(np.int32)
-
-def labels_to_map(labels):
-  for x, y in world_pos_to_map_pos(labels):
-    label = np.full((8, 10), 0.5, dtype=np.float32)
-
-    # clamp to map size
-    x = max(0, min(7, x))
-    y = max(0, min(9, y))
-    label[x, y] = 0
-    yield label
 
 RANDOM_POSITION_MUL = normalization(0) // [1, 1, 2]
 RANDOM_POSITION_OFF = RANDOM_POSITION_MUL * [0, 0, 1] + [0, 0, 17] # cars drive at height 17
