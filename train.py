@@ -149,35 +149,35 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--dataset', type=str, default='ssl_2v2')
     parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--batch_size', type=int, default=100_000)
+    parser.add_argument('--bs', type=int, default=100_000)
     # Add argument to specify optimiser and learning rate
     parser.add_argument('--optimiser', type=str, default='adam')
     parser.add_argument('--lr', type=float, default=1e-4)
     # Add argument to specify loss function
-    parser.add_argument('--loss_fn', type=str, default='bce')
+    parser.add_argument('--loss', type=str, default='bce')
     # Add argument to specify rng seed
     parser.add_argument('--seed', type=int, default=1337)
     # Add arguments for augmentation
-    parser.add_argument('--augment_flip', action='store_true')
-    parser.add_argument('--augment_shuffle_blue', action='store_true')
-    parser.add_argument('--augment_shuffle_orange', action='store_true')
+    parser.add_argument('--aug-flip', action='store_true', help="Flip blue and orange teams 50% of the time")
+    parser.add_argument('--aug-blue', action='store_true', help="Shuffle blue team 50% of the time")
+    parser.add_argument('--aug-orange', action='store_true', help="Shuffle orange team 50% of the time")
     # Add argument to enable negative case (random position) generation
     parser.add_argument('--disable-rng-mask', action='store_true', help='Disables random position generation. Required for training with a negative mask, should prevent false positives when enabled.')
-    # Add argument to use a 2d map
-    parser.add_argument('--use-2d-map', action='store_true')
+    # Add argument to use a 2d map, use the variable "use_2d_map" in the code
+    parser.add_argument('--2d', action='store_true', help='Use a 2d map', dest='use_2d_map')
 
     # Parse all arguments into variables
     args = parser.parse_args()
     dataset = args.dataset
     epochs = args.epochs
-    batch_size = args.batch_size
+    batch_size = args.bs
     optimiser = args.optimiser
     lr = args.lr
-    loss_fn = args.loss_fn
+    loss_fn = args.loss
     seed = args.seed
-    augment_flip = args.augment_flip
-    augment_shuffle_blue = args.augment_shuffle_blue
-    augment_shuffle_orange = args.augment_shuffle_orange
+    augment_flip = args.aug_flip
+    augment_shuffle_blue = args.aug_blue
+    augment_shuffle_orange = args.aug_orange
     random_position = not args.disable_rng_mask
     use_2d_map = args.use_2d_map
 
