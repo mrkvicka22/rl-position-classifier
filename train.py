@@ -156,7 +156,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--dataset', type=str, default='ssl_2v2')
     parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--bs', type=int, default=100_000)
+    parser.add_argument('--bs', type=int, default=500)
     # Add argument to specify optimiser and learning rate
     parser.add_argument('--optimiser', type=str, default='adam')
     parser.add_argument('--lr', type=float, default=1e-4)
