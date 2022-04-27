@@ -27,11 +27,11 @@ class Net(nn.Module):
 def create_model(player_count):
   """ Create a model based on player count (changes network size) """
   return Net([
-    # player (x,y,z) + ball (x,y,z)
+    # player (x,y,z) + ball (x,y,z), n_dims = 3
     nn.Linear(player_count * n_dims + n_dims, 128), nn.ReLU(),
     nn.Linear(128,128), nn.ReLU(),
     nn.Linear(128,128), nn.ReLU(),
-    nn.Linear(128,1), nn.Sigmoid(),
+    nn.Linear(128,1),
   ])
 
 def dead_test():
