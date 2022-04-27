@@ -16,20 +16,12 @@ parameters:
     values:
       - "true"
     distribution: categorical
-  aug_orange:
-    values:
-      - "true"
-    distribution: categorical
   optimiser:
     values:
       - adam
       - sgd
     distribution: categorical
   aug_flip:
-    values:
-      - "true"
-    distribution: categorical
-  aug_blue:
     values:
       - "true"
     distribution: categorical

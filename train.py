@@ -55,7 +55,7 @@ def create_random_mask(batch_size):
   np.random.shuffle(mask)
   return mask
 
-def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=False):
+def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_flip=False, use_2d_map=False):
   batch = np.array(get_replay_batch(dataset.table, suffix, batch_size, use_2d_map=use_2d_map))
 
   # The amount of dimensions on each entity, 2 is (x, y), 3 is (x, y, z)
@@ -63,19 +63,13 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
 
   # Apply augmentations, flip teams
   if augment_flip:
-    x_inversion_mask, y_inversion_mask = create_random_mask(batch_size)
+    x_inversion_mask, y_inversion_mask = create_random_mask(batch_size), create_random_mask(batch_size)
+    # flip on x axis
     batch[x_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=True)
+    # flip on y axis
     batch[y_inversion_mask] *= inversion(dataset.player_count, use_2d_map=use_2d_map, x_inversion=False)
-  # Randomly shuffle the blue team
-  if augment_shuffle_blue:
-    shuffle_mask = create_random_mask(batch_size)
-    blue_team = batch[shuffle_mask, ndims:ndims + dataset.player_count * ndims]
-    np.random.shuffle(blue_team)
-  # Randomly shuffle the orange team
-  if augment_shuffle_orange:
-    shuffle_mask = create_random_mask(batch_size)
-    orange_team = batch[shuffle_mask, ndims + dataset.player_count * ndims:]
-    np.random.shuffle(orange_team)
+    # swap teams if we flipped on y axis
+    batch[y_inversion_mask, np.r_[ndims:ndims + dataset.player_count * ndims, ndims + dataset.player_count * ndims:]] = batch[:, np.r_[ndims + dataset.player_count * ndims:, ndims:ndims + dataset.player_count * ndims]]
 
   # Produce labels which default to 1 (correct prediction) and get masked to 0 (incorrect prediction)
   labels = np.ones(batch_size)
@@ -99,12 +93,12 @@ def get_state_batch(dataset, batch_size, suffix, random_position=False, augment_
   # input, label
   return batch / normalization(dataset.player_count, use_2d_map=use_2d_map), labels
 
-def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser, loss_fn, random_position=False, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=False):
+def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser, loss_fn, random_position=False, augment_flip=False, use_2d_map=False):
 
   epoch_length = get_total_data_count(dataset.table, 'train')
   print('Epoch length: ', epoch_length)
   total_steps = 0
-  init_features, init_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=use_2d_map)
+  init_features, init_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
   init_inputs = torch.tensor(init_features.astype(np.float32))
   init_labels = torch.tensor(init_labels.astype(np.float32)).view((batch_size, 1))
   init_loss = loss_fn(model(init_inputs), init_labels)
@@ -115,7 +109,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
     # Count the total steps in the epoch
     epoch_steps = 0
     while epoch_steps < epoch_length:
-      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=augment_flip, augment_shuffle_blue=augment_shuffle_blue, augment_shuffle_orange=augment_shuffle_orange, use_2d_map=use_2d_map)
+      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=augment_flip, use_2d_map=use_2d_map)
       inputs = torch.tensor(train_features.astype(np.float32))
       labels = torch.tensor(train_labels.astype(np.float32)).view((batch_size, 1)) # BCELoss requires strict size for labels
       training_loss = train_step(model, optimiser, loss_fn, inputs, labels)
@@ -129,12 +123,12 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
     model.eval()
     with torch.no_grad():
       # Validate
-      val_features, val_labels = get_state_batch(dataset, batch_size, 'validation', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=use_2d_map)
+      val_features, val_labels = get_state_batch(dataset, batch_size, 'validation', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
       val_inputs = torch.tensor(val_features.astype(np.float32))
       val_labels = torch.tensor(val_labels.astype(np.float32)).view((batch_size, 1)) # BCELoss requires strict size for labels
       val_loss = loss_fn(model(val_inputs), val_labels)
       print(f'Validation loss: {val_loss}')
-      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False, use_2d_map=use_2d_map)
+      train_features, train_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
       train_inputs = torch.tensor(train_features.astype(np.float32))
       train_labels = torch.tensor(train_labels.astype(np.float32)).view((batch_size, 1))
       train_loss = loss_fn(model(train_inputs), train_labels)
@@ -170,8 +164,6 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=1337)
     # Add arguments for augmentation
     parser.add_argument('--aug-flip', action='store_true', help="Flip blue and orange teams 50% of the time")
-    parser.add_argument('--aug-blue', action='store_true', help="Shuffle blue team 50% of the time")
-    parser.add_argument('--aug-orange', action='store_true', help="Shuffle orange team 50% of the time")
     # Add argument to enable negative case (random position) generation
     parser.add_argument('--disable-rng-mask', action='store_true', help='Disables random position generation. Required for training with a negative mask, should prevent false positives when enabled.')
     # Add argument to use a 2d map, use the variable "use_2d_map" in the code
@@ -190,8 +182,6 @@ if __name__ == '__main__':
     loss_fn = args.loss
     seed = args.seed
     augment_flip = args.aug_flip
-    augment_shuffle_blue = args.aug_blue
-    augment_shuffle_orange = args.aug_orange
     random_position = not args.disable_rng_mask
     use_2d_map = args.use_2d_map
 
@@ -249,8 +239,6 @@ if __name__ == '__main__':
     print(f'Seed: {seed}')
     print(f'Augmentations:')
     print(f'  Flip teams: {augment_flip}')
-    print(f'  Shuffle Blue: {augment_shuffle_blue}')
-    print(f'  Shuffle Orange: {augment_shuffle_orange}')
     print(f'  Random position mask: {random_position}')
     print(f'Use 2D map: {use_2d_map}')
     print('\n')
@@ -263,8 +251,6 @@ if __name__ == '__main__':
       , optimiser
       , loss_fn
       , augment_flip
-      , augment_shuffle_blue
-      , augment_shuffle_orange
       , random_position
       , use_2d_map
     )
