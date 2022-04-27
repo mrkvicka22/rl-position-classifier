@@ -10,13 +10,13 @@ GAMEMODE_PLAYERS = {
 
 DATA_TABLE_SUFFIXES = ['train', 'validation', 'test']
 
-def get_replay_batch(gamemode, suffix, batch_size, verbose=False):
+def get_replay_batch(gamemode, suffix, batch_size, use_2d_map=False, verbose=False):
   if gamemode not in GAMEMODE_PLAYERS:
     raise ValueError('Invalid gamemode {}'.format(gamemode))
   if suffix not in DATA_TABLE_SUFFIXES:
     raise ValueError('Invalid suffix {}'.format(suffix))
   cur = con.cursor()
-  columns = get_table_columns(GAMEMODE_PLAYERS[gamemode])
+  columns = get_table_columns(GAMEMODE_PLAYERS[gamemode], use_2d_map)
   expression =f'''
   select {','.join(columns)} from {gamemode}_{suffix} where rowid in (
       select distinct (1+abs(random()) % (SELECT rowid FROM {gamemode}_{suffix} ORDER BY rowid DESC LIMIT 1)) from {gamemode}_{suffix} limit {batch_size}
@@ -31,13 +31,13 @@ def get_replay_batch(gamemode, suffix, batch_size, verbose=False):
     results += get_replay_batch(gamemode, suffix, batch_size - len(results))
   return results
 
-def get_random_play_sequence(gamemode, suffix, batch_size, verbose=False):
+def get_random_play_sequence(gamemode, suffix, batch_size, use_2d_map=False, verbose=False):
   if gamemode not in GAMEMODE_PLAYERS:
     raise ValueError('Invalid gamemode {}'.format(gamemode))
   if suffix not in DATA_TABLE_SUFFIXES:
     raise ValueError('Invalid suffix {}'.format(suffix))
   cur = con.cursor()
-  columns = get_table_columns(GAMEMODE_PLAYERS[gamemode])
+  columns = get_table_columns(GAMEMODE_PLAYERS[gamemode], use_2d_map)
   expression =f'''
   select {','.join(columns)} from {gamemode}_{suffix} limit {batch_size} offset (
       select (1+abs(random()) % ((SELECT rowid FROM {gamemode}_{suffix} ORDER BY rowid DESC LIMIT 1) - {batch_size})) from {gamemode}_{suffix} limit 1
