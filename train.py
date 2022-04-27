@@ -98,6 +98,11 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
   epoch_length = get_total_data_count(dataset.table, 'train')
   print('Epoch length: ', epoch_length)
   total_steps = 0
+  init_features, init_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, augment_shuffle_blue=False, augment_shuffle_orange=False)
+  init_inputs = torch.tensor(init_features.astype(np.float32))
+  init_labels = torch.tensor(init_labels.astype(np.float32)).view((batch_size, 1))
+  init_loss = loss_fn(model(init_inputs), init_labels)
+  print(f'Init loss: {init_loss}')
 
   # Iterate for n epochs
   for epoch in range(epochs):
