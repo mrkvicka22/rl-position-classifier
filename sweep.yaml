@@ -19,7 +19,6 @@ parameters:
   optimiser:
     values:
       - adam
-      - sgd
     distribution: categorical
   aug_flip:
     values:
@@ -28,37 +27,22 @@ parameters:
   dataset:
     values:
       - ssl_2v2
-      - ssl_1v1
-      - ssl_3v3
     distribution: categorical
   epochs:
-    max: 10
-    min: 1
+    max: 100
+    min: 10
     distribution: int_uniform
   seed:
     values:
-      - 1337
-      - 42
-      - 1234
       - 987654312
     distribution: categorical
-  loss:
-    values:
-      - bce
-      - mse
-    distribution: categorical
   lr:
-    max: 0.004
-    min: 0.00005
+    max: 0.0028
+    min: 0.0020
     distribution: uniform
   bs:
     values:
-      - 50000
-      - 25000
       - 10000
       - 5000
       - 2500
-      - 1000
-      - 500
-      - 250
     distribution: categorical
