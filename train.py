@@ -11,7 +11,6 @@ from torch.nn import BCEWithLogitsLoss, MSELoss
 from torch.optim import SGD, Adam
 
 from net import create_model
-from settings import TWOS_MODEL_PATH
 from state_provider import get_replay_batch, get_total_data_count
 
 DatasetClass = namedtuple('DatasetClass', ['table', 'player_count'])
@@ -22,8 +21,6 @@ DATASET_SSL_3v3 = DatasetClass(table='ssl_3v3', player_count=6)
 # TODO: Validate x and y coordinate space
 # X is left and right
 # Y is up and down
-
-MODEL_PATH = TWOS_MODEL_PATH
 
 def train_step(net, optimiser, loss_fn, inputs, targets):
   # optimiser.zero_grad()
