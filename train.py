@@ -95,8 +95,10 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
   init_features, init_labels = get_state_batch(dataset, batch_size, 'train', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
   init_inputs = torch.tensor(init_features.astype(np.float32))
   init_labels = torch.tensor(init_labels.astype(np.float32)).view((batch_size, 1))
-  init_loss = loss_fn(model(init_inputs), init_labels)
+  init_loss = loss_fn(model(init_inputs), init_labels).item()
   print(f'Init loss: {init_loss}')
+
+  best_val_loss, best_val_acc = init_loss, 0
 
   # Iterate for n epochs
   for epoch in range(epochs):
@@ -121,8 +123,14 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       val_features, val_labels = get_state_batch(dataset, validation_batch_size, 'validation', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
       val_inputs = torch.tensor(val_features.astype(np.float32))
       val_labels = torch.tensor(val_labels.astype(np.float32)).view((validation_batch_size, 1)) # BCELoss requires strict size for labels
-      val_loss = loss_fn(model(val_inputs), val_labels)
-      print(f'Validation loss: {val_loss}')
+      val_pred = model(val_inputs)
+      val_pred_threshold = 0 if isinstance(loss_fn, BCEWithLogitsLoss) else 0.5
+      val_loss = loss_fn(val_pred, val_labels).item()
+      val_acc = (val_labels == (val_pred > val_pred_threshold)).float().mean().item()
+      # Save best loss and best accuracy
+      wandb.run.summary["best_val_loss"] = best_val_loss = min(val_loss, best_val_loss)
+      wandb.run.summary["best_val_acc"] = best_val_acc = max(val_acc, best_val_acc)
+      print(f'Validation loss: {val_loss}, accuracy: {val_acc}')
       train_features, train_labels = get_state_batch(dataset, validation_batch_size, 'train', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
       train_inputs = torch.tensor(train_features.astype(np.float32))
       train_labels = torch.tensor(train_labels.astype(np.float32)).view((validation_batch_size, 1))
@@ -134,8 +142,29 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       # Save model
       save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_latest.pt"))
       save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_chk_{total_steps}.pt"))
-      wandb.log({'val_loss': val_loss, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
+      wandb.log({'val_loss': val_loss, 'val_acc': val_acc, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
       model.train()
+  # Calculate the final loss and accuracy
+  print("Running final validation against test data...")
+  model.eval()
+  with torch.no_grad():
+    test_batch_size, test_passes = 100_000, 10
+    # Multiple passes, and average the result
+    test_loss, test_acc = 0, 0
+    for _ in range(test_passes):
+      test_features, test_labels = get_state_batch(dataset, test_batch_size, 'test', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
+      test_inputs = torch.tensor(test_features.astype(np.float32))
+      test_labels = torch.tensor(test_labels.astype(np.float32)).view((test_batch_size, 1)) # BCELoss requires strict size for labels
+      test_pred = model(test_inputs)
+      test_pred_threshold = 0 if isinstance(loss_fn, BCEWithLogitsLoss) else 0.5
+      test_loss += loss_fn(test_pred, test_labels).item()
+      test_acc += (test_labels == (test_pred > test_pred_threshold)).float().mean().item()
+    test_loss /= test_passes
+    test_acc /= test_passes
+    print(f'Test loss: {test_loss}, accuracy: {test_acc}')
+    wandb.run.summary["test_loss"] = test_loss
+    wandb.run.summary["test_acc"] = test_acc
+
 
 if __name__ == '__main__':
   def __main__():
