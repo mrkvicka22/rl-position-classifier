@@ -114,7 +114,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       total_steps += batch_size
       if epoch_steps % 100_000 == 0:
         print('Epoch {}/{}, steps: {}, ({:.2f}%)'.format(epoch + 1, epochs, total_steps, epoch_steps / epoch_length * 100))
-      wandb.log({'train_loss': training_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
+      wandb.log({'train_loss': training_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps}, commit=False)
 
     model.eval()
     with torch.no_grad():
