@@ -186,7 +186,7 @@ if __name__ == '__main__':
     # Add argument to specify rng seed
     parser.add_argument('--seed', type=int, default=1337)
     # Add arguments for augmentation
-    parser.add_argument('--aug-flip', action='store_true', help="Flip blue and orange teams 50% of the time")
+    parser.add_argument('--aug-flip', action='store_true', help="Flip blue and orange teams 50%% of the time")
     # Add argument to enable negative case (random position) generation
     parser.add_argument('--disable-rng-mask', action='store_true', help='Disables random position generation. Required for training with a negative mask, should prevent false positives when enabled.')
     # Add argument to use a 2d map, use the variable "use_2d_map" in the code
