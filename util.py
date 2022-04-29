@@ -11,4 +11,7 @@ def get_table_columns(player_count, use_2d_map=False):
     return ['ball_x', 'ball_y', 'ball_z'] + list(player_columns)
 
 def get_db():
-  return sqlite3.connect('C:\\Users\\jneve\\Desktop\\replays.db')
+  try:
+    return sqlite3.connect('/workspace/replays.db')
+  except sqlite3.OperationalError:
+    return sqlite3.connect('C:\\Users\\jneve\\Desktop\\replays.db')
