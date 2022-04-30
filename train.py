@@ -127,6 +127,9 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       val_pred_threshold = 0 if isinstance(loss_fn, BCEWithLogitsLoss) else 0.5
       val_loss = loss_fn(val_pred, val_labels).item()
       val_acc = (val_labels == (val_pred > val_pred_threshold)).float().mean().item()
+      # Update best model
+      if best_val_acc > val_acc:
+        save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_best.pt"))
       # Save best loss and best accuracy
       wandb.run.summary["best_val_loss"] = best_val_loss = min(val_loss, best_val_loss)
       wandb.run.summary["best_val_acc"] = best_val_acc = max(val_acc, best_val_acc)
