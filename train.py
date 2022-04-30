@@ -211,6 +211,10 @@ if __name__ == '__main__':
     parser.add_argument('--disable-rng-mask', action='store_true', help='Disables random position generation. Required for training with a negative mask, should prevent false positives when enabled.')
     # Add argument to use a 2d map, use the variable "use_2d_map" in the code
     parser.add_argument('--2d', action='store_true', help='Use a 2d map', dest='use_2d_map')
+    # Add an argument to specify the amount of hidden layers
+    parser.add_argument('--hidden-layers', type=int, default=2, help='Number of hidden layers')
+    # Add an argument to specify the amount of hidden units
+    parser.add_argument('--hidden-units', type=int, default=128, help='Number of hidden units')
 
     # Parse all arguments, ship to wandb and collect the returned config
     args = parser.parse_args()
@@ -227,6 +231,8 @@ if __name__ == '__main__':
     augment_flip = args.aug_flip
     random_position = not args.disable_rng_mask
     use_2d_map = args.use_2d_map
+    hidden_layers = args.hidden_layers
+    hidden_units = args.hidden_units
 
     # Apply seed to numpy, torch and python random
     np.random.seed(seed)
@@ -247,7 +253,7 @@ if __name__ == '__main__':
       raise ValueError(f"Dataset {dataset} not found, available datasets: {valid_dataset_table_names}")
 
     # Create model and attach wandb
-    model = create_model(dataset.player_count, 2 if use_2d_map else 3)
+    model = create_model(dataset.player_count, 2 if use_2d_map else 3, hidden_layers, hidden_units)
     wandb.watch(model)
     wandb.save(os.path.join(wandb.run.dir, f"model_{dataset.table}_chk*"))
 

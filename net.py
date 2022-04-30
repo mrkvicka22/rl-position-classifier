@@ -22,15 +22,14 @@ class Net(nn.Module):
   def forward(self, x):
     return self.model(x)
 
-def create_model(player_count, ndims = 3):
+def create_model(player_count, ndims = 3, hidden_layers = 2, hidden_units = 128):
   """ Create a model based on player count (changes network size) """
-  return Net([
-    # player (x,y,z) + ball (x,y,z), ndims = 3 when 3d (x, y, z), else 2 for (x, y)
-    nn.Linear(player_count * ndims + ndims, 128), nn.ReLU(),
-    nn.Linear(128,128), nn.ReLU(),
-    nn.Linear(128,128), nn.ReLU(),
-    nn.Linear(128,1),
-  ])
+  # player (x,y,z) + ball (x,y,z), ndims = 3 when 3d (x, y, z), else 2 for (x, y)
+  return Net(
+    [nn.Linear(player_count * ndims + ndims, hidden_units), nn.ReLU()] +
+    [nn.Linear(hidden_units, hidden_units), nn.ReLU()] * hidden_layers +
+    [nn.Linear(hidden_units,1)]
+  )
 
 def dead_test():
   print("This test only checks that the network works, not that it produces correct results.")

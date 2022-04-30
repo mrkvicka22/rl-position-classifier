@@ -18,6 +18,14 @@ parameters:
     max: 15
     min: 3
     distribution: int_uniform
+  hidden_layers:
+    max: 3
+    min: 1
+    distribution: int_uniform
+  hidden_units:
+    max: 256
+    min: 16
+    distribution: int_uniform
   lr:
     max: 0.05
     min: 0.0001
