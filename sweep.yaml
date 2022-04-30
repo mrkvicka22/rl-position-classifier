@@ -4,7 +4,8 @@ command:
   - ${interpreter}
   - ${program}
   - --2d
-  - --seed 987654314
+  - --seed
+  - 987654314
 method: bayes
 metric:
   goal: minimize
