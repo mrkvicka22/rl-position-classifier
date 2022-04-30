@@ -10,7 +10,7 @@ metric:
   goal: minimize
   name: val_loss
 early_terminate:
-  type: hyberband
+  type: hyperband
   min_iter: 3
 parameters:
   epochs:
