@@ -13,6 +13,8 @@ from torch.optim import SGD, Adam
 from net import create_model
 from state_provider import get_replay_batch, get_total_data_count
 
+from renderer import create_animation_from_model
+
 DatasetClass = namedtuple('DatasetClass', ['table', 'player_count'])
 DATASET_SSL_1v1 = DatasetClass(table='ssl_1v1', player_count=2)
 DATASET_SSL_2v2 = DatasetClass(table='ssl_2v2', player_count=4)
@@ -128,7 +130,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       val_loss = loss_fn(val_pred, val_labels).item()
       val_acc = (val_labels == (val_pred > val_pred_threshold)).float().mean().item()
       # Update best model
-      if best_val_acc > val_acc:
+      if val_acc > best_val_acc:
         save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_best.pt"))
       # Save best loss and best accuracy
       wandb.run.summary["best_val_loss"] = best_val_loss = min(val_loss, best_val_loss)
@@ -167,6 +169,21 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
     print(f'Test loss: {test_loss}, accuracy: {test_acc}')
     wandb.run.summary["test_loss"] = test_loss
     wandb.run.summary["test_acc"] = test_acc
+  print("Rendering best model video...")
+  best_model_path = os.path.join(wandb.run.dir, f"model_{dataset.table}_best.pt")
+  # Check if the best model exists
+  if not os.path.exists(best_model_path):
+    print("Best model not found, skipping video rendering")
+    return
+  # Create a dir called 'renderoutput'
+  render_dir = os.path.join(wandb.run.dir, "renderoutput")
+  if not os.path.exists(render_dir):
+    os.mkdir(render_dir)
+  # Get a path to render dir renderoutput.gif
+  render_path = os.path.join(render_dir, "output.gif")
+  # Render
+  create_animation_from_model(best_model_path, render_path, player_count=dataset.player_count, image_size=0.5)
+  wandb.log({"video": wandb.Video(render_path, fps=4, format="gif")})
 
 
 if __name__ == '__main__':
