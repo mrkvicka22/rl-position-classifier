@@ -14,12 +14,12 @@ early_terminate:
   min_iter: 3
 parameters:
   epochs:
-    max: 10
+    max: 15
     min: 3
     distribution: int_uniform
   lr:
     max: 0.05
-    min: 0.0020
+    min: 0.0001
     distribution: uniform
   bs:
     values:
