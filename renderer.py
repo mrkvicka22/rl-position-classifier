@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 
-def create_gamestates_and_output(space, player_count):
+def create_gamestates(space, player_count):
   """ Create a batch of game states with all zeros except for the prediction position.
   """
   ndims = len(space)
@@ -10,9 +10,16 @@ def create_gamestates_and_output(space, player_count):
   predictions = np.mgrid[mgrid_slices].reshape(ndims, -1).T
   empty_entity = np.zeros((np.prod(space), ndims))
   game_states = np.concatenate([empty_entity, predictions, np.repeat(empty_entity, player_count - 1, axis=1)], axis=1)
+  return game_states
+
+def mock_model(space, game_states):
+  """ Create a batch of game states with all zeros except for the prediction position.
+  """
+  ndims = len(space)
+  predictions = game_states[:, ndims:2 * ndims]
   # Calculate the distance of each prediction from the center of the map, scale by space to compensate for aspect ratio
   output = 1 - (np.linalg.norm(predictions * np.array(space), axis = 1) / (np.sqrt(ndims) * np.max(space)))
-  return game_states, output
+  return output
 
 def transform_output_into_space(output, space):
   """ Transform the output into a space of the same size.
@@ -71,8 +78,10 @@ def load_arena():
 
 if __name__ == '__main__':
   space = (400, 600)
+  player_count = 4
   arena, mask = load_arena()
-  states, outputs = create_gamestates_and_output(space, player_count=4)
+  game_states = create_gamestates(space, player_count=4)
+  outputs = mock_model(space, game_states)
   graphical = transform_output_into_space(outputs, space)
   image = render_graphical_heatmap(graphical, arena, mask, focus=3, cmap='magma', heatmap_opacity=0.6)
   save_heatmap_image('heatmap.png', image)
