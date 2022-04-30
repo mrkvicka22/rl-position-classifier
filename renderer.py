@@ -2,8 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 import torch
-
 from state_provider import get_random_play_sequence
+
+space = (256, 375)
 
 def create_gamestates(space, player_count, ball_state=None, player_positions=None):
   """ Create a batch of game states with all zeros except for the prediction position.
@@ -43,12 +44,10 @@ def display_graphical_heatmap(graphical, cmap='viridis', focus=2):
   plt.imshow(graphical ** focus, cmap=cmap, interpolation='nearest')
   plt.show()
 
-n = 0
-def render_graphical_heatmap(graphical, arena: Image, mask: Image, cmap='viridis', focus=2, normalize=True, heatmap_opacity = 0.5, entities = None):
+
+def render_graphical_heatmap(graphical, arena: Image, mask: Image, cmap='viridis', focus=2, normalize=True, heatmap_opacity = 0.5, entities = None, image_size=1):
   """ Render a heatmap of the output to a numpy array for storage or sending to wandb.
   """
-  global n
-  n = n + 1
   cmap = plt.cm.get_cmap(cmap)
   graphical **= focus
   if normalize:
@@ -85,6 +84,8 @@ def render_graphical_heatmap(graphical, arena: Image, mask: Image, cmap='viridis
   heatmap_image.putalpha(mask)
   # Blend the heatmap with the arena
   combined = Image.blend(arena, heatmap_image, heatmap_opacity)
+  if image_size != 1:
+    combined = combined.resize((int(combined.width * image_size), int(combined.height * image_size)), resample=Image.Resampling.LANCZOS)
   return combined
 
 def save_heatmap_image(filename, image):
@@ -110,7 +111,7 @@ def world_space_to_image_space(position, space):
   return np.clip(position * np.array(space) // 2 + np.array(space) // 2, 0, space)
 
 
-def create_image_stream(model, state_generator, space, arena, mask):
+def create_image_stream(model, state_generator, space, arena, mask, image_size=1):
   for game_state, frame in state_generator:
     outputs = apply_model(model, game_state)
     graphical = transform_output_into_space(outputs, space)
@@ -127,9 +128,10 @@ def create_image_stream(model, state_generator, space, arena, mask):
       # fourth player
       (world_space_to_image_space(frame[8:10], space), (255, 168, 0, 255)),
     ]
-    yield render_graphical_heatmap(graphical, arena, mask, focus=3, cmap='magma', heatmap_opacity=0.6, entities=entities)
+    yield render_graphical_heatmap(graphical, arena, mask, focus=3, cmap='magma', heatmap_opacity=0.6, image_size=image_size, entities=entities)
 
-def create_animation_from_model(model_path, image_path, space, arena, mask):
+def create_animation_from_model(model_path, image_path, player_count, image_size=1):
+  arena, mask = load_arena()
   model = torch.load(model_path)
   model.eval()
 
@@ -141,16 +143,15 @@ def create_animation_from_model(model_path, image_path, space, arena, mask):
 
   game_state_gen = ((create_gamestates(space, player_count=4, ball_state=frame[:2], player_positions=frame[4:]), frame) for frame in sequence)
 
-  images = list(create_image_stream(model, game_state_gen, space, arena, mask))
+  images = list(create_image_stream(model, game_state_gen, space, arena, mask, image_size=image_size))
   # Save all images as a gif
   images[0].save(image_path, save_all=True, append_images=images[1:], duration=seconds, loop=0)
 
 if __name__ == '__main__':
-  space = (256, 375)
-  player_count = 4
   arena, mask = load_arena()
   model = torch.load('renderer.pt')
   model.eval()
+  player_count = 4
 
   fps = 4 # get 2 seconds at 4 fps
   seconds = 5
