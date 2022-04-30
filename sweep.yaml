@@ -3,46 +3,28 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
+  - --2d
+  - --seed 987654312
 method: bayes
 metric:
   goal: minimize
   name: val_loss
+early_terminate:
+  type: hyberband
+  min_iter: 3
 parameters:
-  disable_rng_mask:
-    values:
-      - no
-    distribution: categorical
-  use_2d_map:
-    values:
-      - no
-    distribution: categorical
-  optimiser:
-    values:
-      - adam
-    distribution: categorical
-  aug_flip:
-    values:
-      - no
-    distribution: categorical
-  dataset:
-    values:
-      - ssl_2v2
-    distribution: categorical
   epochs:
-    max: 100
-    min: 10
+    max: 10
+    min: 3
     distribution: int_uniform
-  seed:
-    values:
-      - 987654312
-    distribution: categorical
   lr:
-    max: 0.0028
+    max: 0.05
     min: 0.0020
     distribution: uniform
   bs:
     values:
+      - 50000
+      - 25000
+      - 15000
       - 10000
-      - 5000
-      - 2500
     distribution: categorical
