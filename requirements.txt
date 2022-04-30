@@ -3,3 +3,4 @@ matplotlib
 numpy
 fastparquet
 wandb
+pillow
