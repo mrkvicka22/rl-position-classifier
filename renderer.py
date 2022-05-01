@@ -136,7 +136,7 @@ def create_animation_from_model(model_path, image_path, player_count, image_size
   model.eval()
 
   fps = 4 # get 2 seconds at 4 fps
-  seconds = 5
+  seconds = 15
   batch_frames = seconds * 15
   sequence = get_random_play_sequence('ssl_2v2', 'test', batch_size=batch_frames, use_2d_map=True)[::15 // fps]
   sequence = np.array(sequence) / ([4096, 6000] * (1 + player_count))
@@ -154,7 +154,7 @@ if __name__ == '__main__':
   player_count = 4
 
   fps = 4 # get 2 seconds at 4 fps
-  seconds = 5
+  seconds = 15
   batch_frames = seconds * 15
 
   for _ in range(10):
