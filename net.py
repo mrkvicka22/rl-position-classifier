@@ -22,13 +22,24 @@ class Net(nn.Module):
   def forward(self, x):
     return self.model(x)
 
-def create_model(player_count, ndims = 3, hidden_layers = 2, hidden_units = 128):
+
+def create_hidden_layers(hidden_units, hidden_layers, dropout=None, dropout_layers=None):
+  if dropout_layers is None:
+    dropout_layers = hidden_layers
+  for hidden_idx in range(hidden_layers):
+    yield nn.Linear(hidden_units, hidden_units)
+    yield nn.ReLU()
+    if dropout is not None and hidden_idx < dropout_layers:
+      yield nn.Dropout(dropout)
+
+
+def create_model(player_count, ndims = 3, hidden_layers = 2, hidden_units = 128, dropout = None, dropout_layers=None):
   """ Create a model based on player count (changes network size) """
   # player (x,y,z) + ball (x,y,z), ndims = 3 when 3d (x, y, z), else 2 for (x, y)
   return Net(
-    [nn.Linear(player_count * ndims + ndims, hidden_units), nn.ReLU()] +
-    [nn.Linear(hidden_units, hidden_units), nn.ReLU()] * hidden_layers +
-    [nn.Linear(hidden_units,1)]
+    [nn.Linear(player_count * ndims + ndims, hidden_units), nn.ReLU()] + # input
+    list(create_hidden_layers(hidden_units, hidden_layers, dropout, dropout_layers)) + # hidden layers
+    [nn.Linear(hidden_units,1)] # output
   )
 
 def dead_test():

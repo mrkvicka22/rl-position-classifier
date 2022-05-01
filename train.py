@@ -195,26 +195,30 @@ if __name__ == '__main__':
     # parses dataset (string), epochs (int), batch_size (int),
     # and model_path (str, optional)
     parser = ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='ssl_2v2')
-    parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--bs', type=int, default=500)
+    parser.add_argument('--dataset', type=str, default='ssl_2v2', choices=[d.table for d in available_datasets], help='Dataset to use')
+    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train')
+    parser.add_argument('--bs', type=int, default=500, help='Batch size')
     # Add argument to specify optimiser and learning rate
-    parser.add_argument('--optimiser', type=str, default='adam')
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--optimiser', type=str, default='adam', choices=['adam', 'sgd'], help='Optimiser to use')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     # Add argument to specify loss function
-    parser.add_argument('--loss', type=str, default='bce')
+    parser.add_argument('--loss', type=str, default='bce', choices=['bce', 'mse'], help='Loss function to use')
     # Add argument to specify rng seed
-    parser.add_argument('--seed', type=int, default=1337)
+    parser.add_argument('--seed', type=int, default=1337, help='Random seed')
     # Add arguments for augmentation
     parser.add_argument('--aug-flip', action='store_true', help="Flip blue and orange teams 50%% of the time")
     # Add argument to enable negative case (random position) generation
     parser.add_argument('--disable-rng-mask', action='store_true', help='Disables random position generation. Required for training with a negative mask, should prevent false positives when enabled.')
     # Add argument to use a 2d map, use the variable "use_2d_map" in the code
-    parser.add_argument('--2d', action='store_true', help='Use a 2d map', dest='use_2d_map')
+    parser.add_argument('--2d', action='store_true', dest='use_2d_map', help='Use a 2d map')
     # Add an argument to specify the amount of hidden layers
     parser.add_argument('--hidden-layers', type=int, default=2, help='Number of hidden layers')
     # Add an argument to specify the amount of hidden units
     parser.add_argument('--hidden-units', type=int, default=128, help='Number of hidden units')
+    # Add an optional argument to specify dropout percentage, defaults to None
+    parser.add_argument('--dropout', type=float, default=None, help='Dropout percentage, defaults to None which disables dropout. Range 0-1.')
+    # Add an argument to specify the dropout layers, defaults to the hidden layer count, ignored if dropout percentage is not specified
+    parser.add_argument('--dropout-layers', type=int, default=None, help='Number of dropout layers, defaults to number of hidden layers, ignored if dropout percentage is not specified')
 
     # Parse all arguments, ship to wandb and collect the returned config
     args = parser.parse_args()
@@ -233,6 +237,8 @@ if __name__ == '__main__':
     use_2d_map = args.use_2d_map
     hidden_layers = args.hidden_layers
     hidden_units = args.hidden_units
+    dropout = args.dropout
+    dropout_layers = args.dropout_layers
 
     # Apply seed to numpy, torch and python random
     np.random.seed(seed)
@@ -253,7 +259,7 @@ if __name__ == '__main__':
       raise ValueError(f"Dataset {dataset} not found, available datasets: {valid_dataset_table_names}")
 
     # Create model and attach wandb
-    model = create_model(dataset.player_count, 2 if use_2d_map else 3, hidden_layers, hidden_units)
+    model = create_model(dataset.player_count, 2 if use_2d_map else 3, hidden_layers=hidden_layers, hidden_units=hidden_units, dropout=dropout, dropout_layers=dropout_layers)
     wandb.watch(model)
     wandb.save(os.path.join(wandb.run.dir, f"model_{dataset.table}_chk*"))
 
@@ -291,6 +297,10 @@ if __name__ == '__main__':
     print(f'  Flip teams: {augment_flip}')
     print(f'  Random position mask: {random_position}')
     print(f'Use 2D map: {use_2d_map}')
+    print(f'Hidden layers: {hidden_layers}')
+    print(f'Hidden units: {hidden_units}')
+    print(f'Dropout: {dropout}')
+    print(f'Dropout layers: {dropout_layers}')
     print('\n')
 
     train(
