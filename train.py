@@ -190,7 +190,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
     # Multiple passes, and average the result
     test_loss, test_acc = 0, 0
     for _ in range(test_passes):
-      test_features, test_labels = get_state_batch(dataset, test_batch_size, 'test', random_position=random_position, augment_flip=False, use_2d_map=use_2d_map)
+      test_features, test_labels = get_state_batch(dataset, test_batch_size, 'test', randomisation=randomisation, augment_flip=False, use_2d_map=use_2d_map)
       test_inputs = torch.tensor(test_features.astype(np.float32))
       test_labels = torch.tensor(test_labels.astype(np.float32)).view((test_batch_size, 1)) # BCELoss requires strict size for labels
       test_pred = model(test_inputs)
