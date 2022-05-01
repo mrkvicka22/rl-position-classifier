@@ -23,7 +23,7 @@ early_terminate:
 parameters:
   dropout:
     max: 0.8
-    min: 0
+    min: 0.0
   dropout_layers:
     values:
       - 1
