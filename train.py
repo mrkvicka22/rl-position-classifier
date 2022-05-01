@@ -143,7 +143,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
   epoch_iterator = range(epochs) if epochs is not None else itertools.count()
 
   # Iterate for n epochs, or forever if epochs is None
-  for epoch in range(epoch_iterator):
+  for epoch in epoch_iterator:
     # Count the total steps in the epoch
     epoch_steps = 0
     while epoch_steps < epoch_length:
