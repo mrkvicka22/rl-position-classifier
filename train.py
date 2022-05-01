@@ -1,7 +1,9 @@
+import itertools
 import os
 import random
 from argparse import ArgumentParser
 from collections import namedtuple
+import traceback
 
 import numpy as np
 import torch
@@ -124,6 +126,9 @@ def get_state_batch(dataset, batch_size, suffix, randomisation=None, augment_fli
 
 def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser, loss_fn, randomisation=None, augment_flip=False, use_2d_map=False):
 
+  # TODO: The train, validation, periodic test, and final evaluation all are very similar
+  #       We should probably abstract this out into a function.
+
   epoch_length = get_total_data_count(dataset.table, 'train')
   print('Epoch length: ', epoch_length)
   total_steps = 0
@@ -135,8 +140,10 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
 
   best_val_loss, best_val_acc = init_loss, 0
 
-  # Iterate for n epochs
-  for epoch in range(epochs):
+  epoch_iterator = range(epochs) if epochs is not None else itertools.count()
+
+  # Iterate for n epochs, or forever if epochs is None
+  for epoch in range(epoch_iterator):
     # Count the total steps in the epoch
     epoch_steps = 0
     while epoch_steps < epoch_length:
@@ -182,8 +189,48 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_chk_{total_steps}.pt"))
       wandb.log({'val_loss': val_loss, 'val_acc': val_acc, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
       model.train()
+
+    if epochs is None and epochs % 10 == 0:
+      print("Performing periodic test evaluation on forever run.")
+      try:
+        model.eval()
+        with torch.no_grad():
+          test_batch_size, test_passes = 100_000, 10
+          # Multiple passes, and average the result
+          test_loss, test_acc = 0, 0
+          for _ in range(test_passes):
+            test_features, test_labels = get_state_batch(dataset, test_batch_size, 'test', randomisation=randomisation, augment_flip=False, use_2d_map=use_2d_map)
+            test_inputs = torch.tensor(test_features.astype(np.float32))
+            test_labels = torch.tensor(test_labels.astype(np.float32)).view((test_batch_size, 1)) # BCELoss requires strict size for labels
+            test_pred = model(test_inputs)
+            test_pred_threshold = 0 if isinstance(loss_fn, BCEWithLogitsLoss) else 0.5
+            test_loss += loss_fn(test_pred, test_labels).item()
+            test_acc += (test_labels == (test_pred > test_pred_threshold)).float().mean().item()
+          test_loss /= test_passes
+          test_acc /= test_passes
+          print(f'Test loss: {test_loss}, accuracy: {test_acc}')
+          wandb.log({'test_loss': test_loss, 'test_acc': test_acc, 'epoch': epoch, 'steps': total_steps})
+        print("Rendering best model video...")
+        best_model_path = os.path.join(wandb.run.dir, f"model_{dataset.table}_best.pt")
+        # Check if the best model exists
+        if not os.path.exists(best_model_path):
+          print("Best model not found, skipping video rendering")
+          return
+        # Create a dir called 'renderoutput'
+        render_dir = os.path.join(wandb.run.dir, "renderoutput")
+        if not os.path.exists(render_dir):
+          os.mkdir(render_dir)
+        # Get a path to render dir renderoutput.gif
+        render_path = os.path.join(render_dir, "output.gif")
+        # Render
+        create_animation_from_model(best_model_path, render_path, player_count=dataset.player_count, image_size=0.5)
+        wandb.log({"video": wandb.Video(render_path, fps=4, format="gif")})
+      except:
+        print("Error performing test evaluation and rendering video, skipping")
+        traceback.print_exc()
+
   # Calculate the final loss and accuracy
-  print("Running final validation against test data...")
+  print("Running final evaluation against test data...")
   model.eval()
   with torch.no_grad():
     test_batch_size, test_passes = 100_000, 10
@@ -252,6 +299,8 @@ if __name__ == '__main__':
     parser.add_argument('--dropout', type=float, default=None, help='Dropout percentage, defaults to None which disables dropout. Range 0-1.')
     # Add an argument to specify the dropout layers, defaults to the hidden layer count, ignored if dropout percentage is not specified
     parser.add_argument('--dropout-layers', type=int, default=None, help='Number of dropout layers, defaults to number of hidden layers, ignored if dropout percentage is not specified')
+    # Add a boolean argument to specify if the training should run forever
+    parser.add_argument('--forever', action='store_true', help='Train forever')
 
     # Parse all arguments, ship to wandb and collect the returned config
     args = parser.parse_args()
@@ -273,6 +322,9 @@ if __name__ == '__main__':
     hidden_units = args.hidden_units
     dropout = args.dropout
     dropout_layers = args.dropout_layers
+    forever = args.forever
+    if forever:
+      epochs = None
 
     # Apply seed to numpy, torch and python random
     np.random.seed(seed)
@@ -320,7 +372,7 @@ if __name__ == '__main__':
     print(f'  Train     : {get_total_data_count(dataset.table, "train")}')
     print(f'  Validation: {get_total_data_count(dataset.table, "validation")}')
     print(f'  Test      : {get_total_data_count(dataset.table, "test")}')
-    print(f'Epochs: {epochs}')
+    print(f'Epochs: {epochs} {("(forever)" if forever else "")}')
     print(f'Batch size: {batch_size}')
     print(f'Optimiser: {optimiser}')
     # Print Learning rate in scientific notation
