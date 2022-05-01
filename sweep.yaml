@@ -6,9 +6,9 @@ command:
   - --2d
   - --seed
   - 987654314
-  - --hidden_units
+  - --hidden-units
   - 180
-  - --hidden_layers
+  - --hidden-layers
   - 2
   - --randomisation
   - shuffle
