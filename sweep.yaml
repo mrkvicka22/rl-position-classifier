@@ -6,10 +6,12 @@ command:
   - --2d
   - --seed
   - 987654314
-  - hidden_units
+  - --hidden_units
   - 180
-  - hidden_layers
+  - --hidden_layers
   - 2
+  - --randomisation
+  - shuffle
 
 method: bayes
 metric:
@@ -27,7 +29,7 @@ parameters:
       - 1
       - 2
   epochs:
-    max: 15
+    max: 20
     min: 3
     distribution: int_uniform
   lr:
