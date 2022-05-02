@@ -191,7 +191,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       wandb.log({'val_loss': val_loss, 'val_acc': val_acc, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
       model.train()
 
-    if epochs is None and epochs % 10 == 0:
+    if epochs is not None and epochs % 10 == 0:
       print("Performing periodic test evaluation on forever run.")
       try:
         model.eval()
