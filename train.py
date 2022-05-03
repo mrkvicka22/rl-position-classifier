@@ -157,7 +157,8 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       total_steps += batch_size
       if epoch_steps % 100_000 == 0:
         print('Epoch {}{}, steps: {}, ({:.2f}%)'.format(epoch + 1, epoch_total, total_steps, epoch_steps / epoch_length * 100))
-      wandb.log({'train_loss': training_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps}, commit=False)
+        # TODO: Use "last_log_steps" instead, so that batch_size doesn't need to be a factor of 100_000
+        wandb.log({'train_loss': training_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps}, step=total_steps)
 
     model.eval()
     with torch.no_grad():
@@ -188,10 +189,10 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
       # Save model
       save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_latest.pt"))
       save(model, os.path.join(wandb.run.dir, f"model_{dataset.table}_chk_{total_steps}.pt"))
-      wandb.log({'val_loss': val_loss, 'val_acc': val_acc, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps})
+      wandb.log({'val_loss': val_loss, 'val_acc': val_acc, 'train_loss': train_loss, 'learning_rate': optimiser.param_groups[0]["lr"], 'epoch': epoch, 'steps': total_steps}, step=total_steps)
       model.train()
 
-    if epochs is None and epochs % 10 == 0:
+    if epochs is None and epoch % 10 == 0:
       print("Performing periodic test evaluation on forever run.")
       try:
         model.eval()
@@ -210,7 +211,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
           test_loss /= test_passes
           test_acc /= test_passes
           print(f'Test loss: {test_loss}, accuracy: {test_acc}')
-          wandb.log({'test_loss': test_loss, 'test_acc': test_acc, 'epoch': epoch, 'steps': total_steps})
+          wandb.log({'test_loss': test_loss, 'test_acc': test_acc, 'epoch': epoch, 'steps': total_steps}, step=total_steps)
         print("Rendering best model video...")
         best_model_path = os.path.join(wandb.run.dir, f"model_{dataset.table}_best.pt")
         # Check if the best model exists
@@ -225,7 +226,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
         render_path = os.path.join(render_dir, "output.gif")
         # Render
         create_animation_from_model(best_model_path, render_path, player_count=dataset.player_count, image_size=0.5)
-        wandb.log({"video": wandb.Video(render_path, fps=4, format="gif")})
+        wandb.log({"video": wandb.Video(render_path, fps=4, format="gif")}, step=total_steps)
       except:
         print("Error performing test evaluation and rendering video, skipping")
         traceback.print_exc()
@@ -264,7 +265,7 @@ def train(model, dataset: DatasetClass, epochs: int, batch_size: int, optimiser,
   render_path = os.path.join(render_dir, "output.gif")
   # Render
   create_animation_from_model(best_model_path, render_path, player_count=dataset.player_count, image_size=0.5)
-  wandb.log({"video": wandb.Video(render_path, fps=4, format="gif")})
+  wandb.log({"video": wandb.Video(render_path, fps=4, format="gif")}, step=total_steps)
 
 
 if __name__ == '__main__':
