@@ -1,6 +1,9 @@
 
 from itertools import chain
 import sqlite3
+import sys
+
+IN_COLAB = 'google.colab' in sys.modules
 
 def get_table_columns(player_count, use_2d_map=False):
   if use_2d_map:
@@ -11,6 +14,8 @@ def get_table_columns(player_count, use_2d_map=False):
     return ['ball_x', 'ball_y', 'ball_z'] + list(player_columns)
 
 def get_db():
+  if IN_COLAB:
+    return sqlite3.connect('/content/replays.db')
   try:
     return sqlite3.connect('/workspace/replays.db')
   except sqlite3.OperationalError:
