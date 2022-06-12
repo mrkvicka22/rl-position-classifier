@@ -15,8 +15,9 @@ def get_table_columns(player_count, use_2d_map=False):
 
 def get_db():
   if IN_COLAB:
-    return sqlite3.connect('/content/replays.db')
+    return sqlite3.connect('/content/replays-waddles.db')
   try:
-    return sqlite3.connect('/workspace/replays.db')
+    print("Got db")
+    return sqlite3.connect('replays-waddles.db')
   except sqlite3.OperationalError:
     return sqlite3.connect('C:\\Users\\jneve\\Desktop\\replays.db')
